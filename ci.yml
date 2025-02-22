@@ -1,0 +1,170 @@
+# name: Docker Image CI
+
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
+
+# jobs:
+
+#   build:
+
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - uses: actions/checkout@v4
+#     - name: Login Dockerhub 
+#       env:
+#         DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+#         DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}} 
+#       run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+#     - name: Build and Tag Docker Images
+#       run: |
+#         IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+#         docker-compose build
+#         docker tag my-service-name saicharangangili/mern:$IMAGE_TAG
+#         docker tag my-service-name saicharangangili/mern:latest
+
+#     - name: Push Images to Docker Hub
+#       run: |
+#         IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+#         docker push saicharangangili/mern:$IMAGE_TAG
+#         docker push saicharangangili/mern:latest
+
+#     - name: Start Services with Docker Compose
+#       run: docker-compose up -d
+
+#     - name: Check Running Containers
+#       run: docker ps -a
+
+
+
+
+      
+    # - name: Login to Docker Hub
+    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    # - name: Build the Docker image
+    #   run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    # - name: Push to Dockerhub
+    #   run: docker push saicharangangili/mern:latest
+
+    # - name: Run backend tests
+    #   run: npm run test:backend  # Run backend tests without database
+
+    # - name: Run frontend tests
+    #   run: npm run test:frontend
+
+
+
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo
+        ports:
+          - 27017:27017
+        volumes:
+          - mongo-data:/data/db
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v2
+
+    - name: Install Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20'
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v1
+
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Uncomment these lines if you want to update dependencies
+    # - name: Update Dependencies
+    #   run: |
+    #     cd frontend
+    #     npx npm-check-updates -u
+    #     npm install
+
+    # - name: Clean Install
+    #   run: |
+    #     cd frontend
+    #     rm -rf node_modules package-lock.json
+    #     npm install
+
+    - name: Build and run services
+      env:
+        MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ vars.GOOGLE_CLIENT_SECRET }}
+        GITHUB_CLIENT_ID: ${{ vars.GH_CLIENT_ID }}
+        GITHUB_CLIENT_SECRET: ${{ vars.GH_CLIENT_SECRET }}
+      run: |
+        docker-compose -f docker-compose.yml up --build -d
+
+    # - name: Wait for MongoDB to be ready
+    #   run: |
+    #     until docker-compose exec mongo mongo --eval "print(\"waited for connection\")"; do sleep 5; done
+
+    # - name: Run tests
+    #   env:
+    #     MONGODB_URI: ${{ secrets.MONGODB_URI }}
+    #     JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    #     GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+    #     GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+    #     GITHUB_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+    #     GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+    #   run: |
+    #     cd backend
+    #     docker-compose exec backend npm test
+
+    - name: Build Docker image
+      run: |
+        # cd backend
+        docker-compose up
+
+    - name: Tag Docker image
+      run: |
+        # docker tag mern:latest saicharangangili/mern:latest
+        # docker ps -a
+        # docker tag mern_backend_1 saicharangangili/mern-backend:latest
+        # docker tag mern_frontend_1 saicharangangili/mern-frontend:latest
+          docker tag mern saicharangangili/mern-frontend:latest
+          docker tag mern_backend saicharangangili/mern-backend:latest
+
+    - name: Push Docker image to Docker Hub
+      run: |
+        # docker push saicharangangili/mern:latest
+          # docker push saicharangangili/mern-backend:latest
+          # docker push saicharangangili/mern-frontend:latest
+        docker push saicharangangili/mern-frontend:latest
+        docker push saicharangangili/mern-backend:latest
+
+# volumes:
+#   mongo-data:

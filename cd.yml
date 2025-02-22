@@ -1,0 +1,40 @@
+name: Node.js CD with Docker Compose
+
+on:
+    workflow_run:
+        workflows: ["CI Pipeline"]
+        types:
+            - completed
+
+jobs:
+  deploy:
+
+    runs-on: self-hosted
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Pull Docker image frontend
+        run: sudo docker pull saicharangangili/mern-frontend:latest
+
+      - name: Pull Docker image backend
+        run: sudo docker pull saicharangangili/mern-backend:latest
+
+      - name: Remove old Docker containers
+        run: |
+            sudo docker rm -f mern_frontend_1 || true
+            sudo docker rm -f mern_backend_1 || true
+
+      - name: Run Docker container for frontend
+        run: |
+            sudo docker run -d --name mern_frontend_1 -p 3000:3000 saicharangangili/mern-frontend:latest || echo "Failed to run frontend container"
+
+      - name: Run Docker container for backend
+        run: |
+            sudo docker run -d --name mern_backend_1 -p 5000:5000 saicharangangili/mern-backend:latest || echo "Failed to run backend container"
